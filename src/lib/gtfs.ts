@@ -51,7 +51,13 @@ export interface GTFSData {
 
 const parseCSV = <T>(file: string): Promise<T[]> => {
   return new Promise((resolve, reject) => {
-    Papa.parse(`/gtfs/${file}`, {
+    // Use Vite's BASE_URL to correctly resolve the path in any hosting environment
+    // import.meta.env.BASE_URL is set in vite.config.ts (currently './')
+    const baseUrl = import.meta.env.BASE_URL;
+    // Ensure we don't have double slashes if base ends with / and we add gtfs/
+    const path = `${baseUrl}gtfs/${file}`;
+    
+    Papa.parse(path, {
       download: true,
       header: true,
       dynamicTyping: true,
