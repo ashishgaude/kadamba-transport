@@ -1,1 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="3" rx="2"/><path d="M4 11h16"/><path d="M8 15h.01"/><path d="M16 15h.01"/><path d="M6 19v2"/><path d="M18 19v2"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="128" fill="#2563eb"/>
+  <!-- Bus Body -->
+  <rect x="128" y="128" width="256" height="256" rx="32" fill="white"/>
+  <!-- Windows -->
+  <rect x="150" y="150" width="212" height="100" rx="10" fill="#2563eb"/>
+  <!-- Lights/Grill -->
+  <rect x="160" y="280" width="40" height="20" rx="5" fill="#e2e8f0"/>
+  <rect x="312" y="280" width="40" height="20" rx="5" fill="#e2e8f0"/>
+  <!-- Wheels -->
+  <circle cx="180" cy="384" r="32" fill="#1e293b"/>
+  <circle cx="332" cy="384" r="32" fill="#1e293b"/>
+</svg>
