@@ -1,6 +1,6 @@
 import type { Route } from '../lib/gtfs';
-import { Search, Map as MapIcon, ChevronRight, PanelLeftClose, Instagram, Linkedin } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Map as MapIcon, ChevronRight, PanelLeftClose, Instagram, Linkedin, Download } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface SidebarProps {
   routes: Route[];
@@ -12,6 +12,25 @@ interface SidebarProps {
 
 export default function Sidebar({ routes, onSelectRoute, selectedRouteId, routeStopIndex, onToggleCollapse }: SidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const filteredRoutes = routes.filter(route => {
     const searchLower = searchTerm.toLowerCase();
@@ -41,8 +60,19 @@ export default function Sidebar({ routes, onSelectRoute, selectedRouteId, routeS
             <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
                 <MapIcon className="w-6 h-6 text-blue-100" />
             </div>
-            <div>
-                <h1 className="text-xl font-bold tracking-tight">Kadamba Transport</h1>
+            <div className="flex-1">
+                <div className="flex items-center gap-2">
+                    <h1 className="text-xl font-bold tracking-tight">Kadamba Transport</h1>
+                    {deferredPrompt && (
+                        <button 
+                            onClick={handleInstallClick}
+                            className="bg-white/20 hover:bg-white/30 text-white p-1 rounded-md transition-colors animate-pulse"
+                            title="Install App"
+                        >
+                            <Download size={14} />
+                        </button>
+                    )}
+                </div>
                 <p className="text-blue-200 text-xs uppercase tracking-wider font-medium">Goa State Bus Network</p>
             </div>
         </div>
