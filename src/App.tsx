@@ -67,6 +67,15 @@ function App() {
   const [selectedStop, setSelectedStop] = useState<(Stop & { arrival_time?: string }) | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check local storage or system preference
+    if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('theme');
+        if (saved) return saved === 'dark';
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
 
   useEffect(() => {
     fetchGtfsData()
@@ -74,6 +83,17 @@ function App() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  // Update theme
+  useEffect(() => {
+    if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
 
   // Handle URL params on data load
   useEffect(() => {
@@ -191,15 +211,16 @@ function App() {
   if (!data) return <div className="text-center p-10 text-red-500">Failed to load data.</div>;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden relative bg-slate-100 font-sans">
+    <div className={`flex h-screen w-screen overflow-hidden relative font-sans transition-colors duration-300 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'}`}>
       
       {/* Sidebar Container
           Mobile: Fixed drawer
           Desktop: Relative column with transitionable width
       */}
       <div 
-        className={`fixed inset-y-0 left-0 z-[4000] w-full sm:w-96 bg-slate-50 shadow-2xl md:shadow-xl
+        className={`fixed inset-y-0 left-0 z-[4000] w-full sm:w-96 shadow-2xl md:shadow-xl
                     transform transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)
+                    ${isDarkMode ? 'bg-slate-900 border-r border-slate-800' : 'bg-slate-50'}
                     ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                     md:relative md:translate-x-0
                     ${isDesktopSidebarOpen ? 'md:w-96' : 'md:w-0 md:overflow-hidden'}
@@ -209,7 +230,7 @@ function App() {
             {/* Close Button on Mobile */}
             <button 
                 onClick={() => setIsMobileSidebarOpen(false)}
-                className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur rounded-full md:hidden hover:bg-white text-slate-600 shadow-sm z-10 transition-colors"
+                className={`absolute top-4 right-4 p-2 backdrop-blur rounded-full md:hidden shadow-sm z-10 transition-colors ${isDarkMode ? 'bg-slate-800/80 text-slate-200 hover:bg-slate-700' : 'bg-white/80 hover:bg-white text-slate-600'}`}
             >
                 <X size={20} />
             </button>
@@ -219,6 +240,8 @@ function App() {
                 selectedRouteId={selectedRoute?.route_id}
                 routeStopIndex={routeStopIndex}
                 onToggleCollapse={() => setIsDesktopSidebarOpen(false)}
+                isDarkMode={isDarkMode}
+                toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
             />
         </div>
       </div>
@@ -241,9 +264,10 @@ function App() {
                     setIsMobileSidebarOpen(true);
                 }
             }}
-            className={`absolute top-4 left-4 z-[1000] p-3 bg-white rounded-xl shadow-lg hover:bg-slate-50 text-blue-600 border border-slate-100 transition-all active:scale-95
+            className={`absolute top-4 left-4 z-[1000] p-3 rounded-xl shadow-lg border transition-all active:scale-95
                 ${/* Hide on desktop if sidebar is open */ ''}
                 ${isDesktopSidebarOpen ? 'md:hidden' : 'md:flex'}
+                ${isDarkMode ? 'bg-slate-800 border-slate-700 text-blue-400 hover:bg-slate-700' : 'bg-white hover:bg-slate-50 text-blue-600 border-slate-100'}
             `}
         >
             <Menu size={24} />
@@ -253,6 +277,7 @@ function App() {
             stops={routeStops.length > 0 ? routeStops : data.stops} 
             selectedShape={selectedShape}
             onStopClick={setSelectedStop}
+            isDarkMode={isDarkMode}
         />
         
         {/* Route Info Widget (Overlay) */}
@@ -260,16 +285,17 @@ function App() {
             <RouteInfoWidget 
                 route={selectedRoute} 
                 stops={routeStops} 
-                selectedStop={selectedStop} 
+                selectedStop={selectedStop}
+                isDarkMode={isDarkMode}
             />
         )}
 
         {!selectedRoute && (
-          <Dashboard routes={data.routes} stops={data.stops} trips={data.trips} />
+          <Dashboard routes={data.routes} stops={data.stops} trips={data.trips} isDarkMode={isDarkMode} />
         )}
         
         {/* Donation Widget */}
-        <DonationWidget />
+        <DonationWidget isDarkMode={isDarkMode} />
       </div>
     </div>
   );

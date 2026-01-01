@@ -21,6 +21,7 @@ interface MapProps {
   stops: (Stop & { arrival_time?: string })[];
   selectedShape: Shape[] | null;
   onStopClick?: (stop: Stop & { arrival_time?: string }) => void;
+  isDarkMode?: boolean;
 }
 
 const GoaCenter: [number, number] = [15.2993, 74.1240];
@@ -35,7 +36,7 @@ function ChangeView({ bounds }: { bounds: L.LatLngBoundsExpression | null }) {
   return null;
 }
 
-export default function Map({ stops, selectedShape, onStopClick }: MapProps) {
+export default function Map({ stops, selectedShape, onStopClick, isDarkMode }: MapProps) {
   
   // Use shape if available, otherwise fallback to connecting the stops
   const polylinePositions = useMemo(() => {
@@ -56,12 +57,14 @@ export default function Map({ stops, selectedShape, onStopClick }: MapProps) {
         center={GoaCenter} 
         zoom={10} 
         scrollWheelZoom={true} 
-        className="h-full w-full z-0"
+        className={`h-full w-full z-0 transition-opacity duration-500`}
         zoomControl={false} // Disable default zoom control to move it
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url={isDarkMode 
+            ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" 
+            : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"}
         />
         
         <ZoomControl position="bottomright" />
