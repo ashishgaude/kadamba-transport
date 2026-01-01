@@ -3,6 +3,7 @@ import { fetchGtfsData, type GTFSData, type Route, type Shape, type Stop, type S
 import LeafletMap from './components/Map';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
+import DonationWidget from './components/DonationWidget';
 import { Loader2, Menu, X } from 'lucide-react';
 
 // Helper to convert seconds to HH:MM:SS (GTFS format)
@@ -258,6 +259,9 @@ function App() {
         {!selectedRoute && (
           <Dashboard routes={data.routes} stops={data.stops} trips={data.trips} />
         )}
+        
+        {/* Donation Widget */}
+        <DonationWidget />
       </div>
     </div>
   );

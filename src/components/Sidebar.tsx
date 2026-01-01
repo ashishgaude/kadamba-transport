@@ -107,8 +107,24 @@ export default function Sidebar({ routes, onSelectRoute, selectedRouteId, routeS
       </div>
       
       {/* Footer */}
-      <div className="p-4 border-t border-slate-200 bg-white text-center text-xs text-slate-400">
-        {filteredRoutes.length} Routes Available
+      <div className="p-4 border-t border-slate-200 bg-white flex flex-col items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
+            <span>Made with</span>
+            <span className="text-red-500 animate-pulse text-sm">❤️</span>
+            <span>by</span>
+            <a 
+                href="https://www.linkedin.com/in/ashishgaude/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+            >
+                Ashish
+            </a>
+            <span>, Goa</span>
+        </div>
+        <div className="text-[10px] text-slate-300 uppercase tracking-widest font-bold">
+            {filteredRoutes.length} Routes Available
+        </div>
       </div>
     </div>
   );
