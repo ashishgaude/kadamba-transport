@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import DonationWidget from './components/DonationWidget';
 import LoadingScreen from './components/LoadingScreen';
+import RouteInfoWidget from './components/RouteInfoWidget';
 import { Menu, X } from 'lucide-react';
 
 // Helper to convert seconds to HH:MM:SS (GTFS format)
@@ -63,6 +64,7 @@ function App() {
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [selectedShape, setSelectedShape] = useState<Shape[] | null>(null);
   const [routeStops, setRouteStops] = useState<(Stop & { arrival_time?: string })[]>([]);
+  const [selectedStop, setSelectedStop] = useState<(Stop & { arrival_time?: string }) | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
 
@@ -94,6 +96,8 @@ function App() {
           }
           // Close sidebar on mobile when route is selected
           setIsMobileSidebarOpen(false);
+          // Reset selected stop
+          setSelectedStop(null);
       }
   }, [selectedRoute]);
 
@@ -194,7 +198,7 @@ function App() {
           Desktop: Relative column with transitionable width
       */}
       <div 
-        className={`fixed inset-y-0 left-0 z-[2000] w-full sm:w-96 bg-slate-50 shadow-2xl md:shadow-xl
+        className={`fixed inset-y-0 left-0 z-[4000] w-full sm:w-96 bg-slate-50 shadow-2xl md:shadow-xl
                     transform transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)
                     ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                     md:relative md:translate-x-0
@@ -222,7 +226,7 @@ function App() {
       {/* Overlay to close sidebar when clicking outside on mobile */}
       {isMobileSidebarOpen && (
         <div 
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1900] md:hidden transition-opacity duration-300"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3900] md:hidden transition-opacity duration-300"
             onClick={() => setIsMobileSidebarOpen(false)}
         />
       )}
@@ -248,8 +252,18 @@ function App() {
         <LeafletMap 
             stops={routeStops.length > 0 ? routeStops : data.stops} 
             selectedShape={selectedShape}
-            selectedRouteName={selectedRoute?.route_long_name}
+            onStopClick={setSelectedStop}
         />
+        
+        {/* Route Info Widget (Overlay) */}
+        {selectedRoute && (
+            <RouteInfoWidget 
+                route={selectedRoute} 
+                stops={routeStops} 
+                selectedStop={selectedStop} 
+            />
+        )}
+
         {!selectedRoute && (
           <Dashboard routes={data.routes} stops={data.stops} trips={data.trips} />
         )}

@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, ZoomControl } from 'react-leaflet';
 import type { Stop, Shape } from '../lib/gtfs';
 import { useEffect } from 'react';
 import L from 'leaflet';
@@ -20,7 +20,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 interface MapProps {
   stops: (Stop & { arrival_time?: string })[];
   selectedShape: Shape[] | null;
-  selectedRouteName?: string;
+  onStopClick?: (stop: Stop & { arrival_time?: string }) => void;
 }
 
 const GoaCenter: [number, number] = [15.2993, 74.1240];
@@ -35,7 +35,7 @@ function ChangeView({ bounds }: { bounds: L.LatLngBoundsExpression | null }) {
   return null;
 }
 
-export default function Map({ stops, selectedShape, selectedRouteName }: MapProps) {
+export default function Map({ stops, selectedShape, onStopClick }: MapProps) {
   
   // Use shape if available, otherwise fallback to connecting the stops
   const polylinePositions = (selectedShape && selectedShape.length > 0)
@@ -47,17 +47,32 @@ export default function Map({ stops, selectedShape, selectedRouteName }: MapProp
     : null;
 
   return (
-    <div className="h-full w-full">
-      <MapContainer center={GoaCenter} zoom={10} scrollWheelZoom={true} className="h-full w-full z-0">
+    <div className="h-full w-full relative">
+      <MapContainer 
+        center={GoaCenter} 
+        zoom={10} 
+        scrollWheelZoom={true} 
+        className="h-full w-full z-0"
+        zoomControl={false} // Disable default zoom control to move it
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
+        <ZoomControl position="bottomright" />
         <ChangeView bounds={bounds} />
         
         {stops.slice(0, (selectedShape || polylinePositions.length > 0) ? undefined : 500).map((stop, idx) => (
-          <Marker key={`${stop.stop_id}-${idx}`} position={[stop.stop_lat, stop.stop_lon]}>
+          <Marker 
+            key={`${stop.stop_id}-${idx}`} 
+            position={[stop.stop_lat, stop.stop_lon]}
+            eventHandlers={{
+                click: () => {
+                    if (onStopClick) onStopClick(stop);
+                }
+            }}
+          >
             <Popup className="custom-popup">
               <div className="flex flex-col min-w-[150px]">
                 <div className="border-b border-gray-100 pb-2 mb-2">
@@ -88,11 +103,6 @@ export default function Map({ stops, selectedShape, selectedRouteName }: MapProp
         )}
         
       </MapContainer>
-      {selectedRouteName && (
-          <div className="absolute top-4 right-4 z-[1000] bg-white p-2 rounded shadow-lg">
-              <span className="font-bold text-blue-600">Route: {selectedRouteName}</span>
-          </div>
-      )}
     </div>
   );
 }

@@ -18,7 +18,7 @@ export default function DonationWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[3000] flex flex-col items-end gap-4 font-sans">
+    <div className="fixed bottom-10 right-4 md:bottom-12 md:right-6 z-[3000] flex flex-col items-end gap-4 font-sans">
       {/* Popup Content */}
       {isOpen && (
         <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-0 w-72 overflow-hidden animate-in fade-in slide-in-from-bottom-10 duration-200">
