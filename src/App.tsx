@@ -62,6 +62,7 @@ function App() {
   const [selectedShape, setSelectedShape] = useState<Shape[] | null>(null);
   const [routeStops, setRouteStops] = useState<(Stop & { arrival_time?: string })[]>([]);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
 
   useEffect(() => {
     fetchGtfsData()
@@ -191,19 +192,25 @@ function App() {
   if (!data) return <div className="text-center p-10 text-red-500">Failed to load data.</div>;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden relative">
+    <div className="flex h-screen w-screen overflow-hidden relative bg-slate-100 font-sans">
       
-      {/* Mobile Sidebar Overlay */}
+      {/* Sidebar Container
+          Mobile: Fixed drawer
+          Desktop: Relative column with transitionable width
+      */}
       <div 
-        className={`fixed inset-y-0 left-0 z-[2000] w-80 bg-white transform transition-transform duration-300 ease-in-out shadow-2xl md:relative md:translate-x-0 md:shadow-none ${
-          isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-[2000] w-full sm:w-96 bg-slate-50 shadow-2xl md:shadow-xl
+                    transform transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)
+                    ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                    md:relative md:translate-x-0
+                    ${isDesktopSidebarOpen ? 'md:w-96' : 'md:w-0 md:overflow-hidden'}
+        `}
       >
-        <div className="h-full relative">
+        <div className="h-full relative flex flex-col min-w-[24rem]">
             {/* Close Button on Mobile */}
             <button 
                 onClick={() => setIsMobileSidebarOpen(false)}
-                className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full md:hidden hover:bg-gray-200 z-10"
+                className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur rounded-full md:hidden hover:bg-white text-slate-600 shadow-sm z-10 transition-colors"
             >
                 <X size={20} />
             </button>
@@ -212,6 +219,7 @@ function App() {
                 onSelectRoute={setSelectedRoute} 
                 selectedRouteId={selectedRoute?.route_id}
                 routeStopIndex={routeStopIndex}
+                onToggleCollapse={() => setIsDesktopSidebarOpen(false)}
             />
         </div>
       </div>
@@ -219,16 +227,25 @@ function App() {
       {/* Overlay to close sidebar when clicking outside on mobile */}
       {isMobileSidebarOpen && (
         <div 
-            className="fixed inset-0 bg-black/50 z-[1900] md:hidden"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1900] md:hidden transition-opacity duration-300"
             onClick={() => setIsMobileSidebarOpen(false)}
         />
       )}
 
       <div className="flex-1 relative h-full w-full">
-        {/* Mobile Toggle Button */}
+        {/* Toggle Button (Visible on Mobile OR when Desktop Sidebar is closed) */}
         <button 
-            onClick={() => setIsMobileSidebarOpen(true)}
-            className="absolute top-4 left-4 z-[1000] p-3 bg-white rounded-lg shadow-lg md:hidden hover:bg-gray-50 text-blue-600"
+            onClick={() => {
+                if (window.innerWidth >= 768) {
+                    setIsDesktopSidebarOpen(true);
+                } else {
+                    setIsMobileSidebarOpen(true);
+                }
+            }}
+            className={`absolute top-4 left-4 z-[1000] p-3 bg-white rounded-xl shadow-lg hover:bg-slate-50 text-blue-600 border border-slate-100 transition-all active:scale-95
+                ${/* Hide on desktop if sidebar is open */ ''}
+                ${isDesktopSidebarOpen ? 'md:hidden' : 'md:flex'}
+            `}
         >
             <Menu size={24} />
         </button>

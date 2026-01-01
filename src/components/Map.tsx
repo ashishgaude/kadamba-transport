@@ -58,16 +58,21 @@ export default function Map({ stops, selectedShape, selectedRouteName }: MapProp
         
         {stops.slice(0, (selectedShape || polylinePositions.length > 0) ? undefined : 500).map((stop, idx) => (
           <Marker key={`${stop.stop_id}-${idx}`} position={[stop.stop_lat, stop.stop_lon]}>
-            <Popup>
-              <div className="flex flex-col gap-1">
-                <strong className="text-blue-700">{stop.stop_name}</strong>
+            <Popup className="custom-popup">
+              <div className="flex flex-col min-w-[150px]">
+                <div className="border-b border-gray-100 pb-2 mb-2">
+                    <strong className="text-blue-700 text-sm block leading-tight">{stop.stop_name}</strong>
+                    <span className="text-[10px] text-gray-400 font-mono tracking-wide">ID: {stop.stop_id}</span>
+                </div>
                 {stop.arrival_time && (
-                  <div className="flex items-center gap-1 text-sm font-semibold text-gray-700">
-                    <span>🕒 Arrival:</span>
-                    <span>{stop.arrival_time}</span>
+                  <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-md border border-slate-100">
+                    <span className="text-lg">🕒</span>
+                    <div>
+                        <span className="text-[10px] uppercase text-gray-500 font-bold block">Arrival</span>
+                        <span className="text-sm font-semibold text-gray-800">{stop.arrival_time}</span>
+                    </div>
                   </div>
                 )}
-                <span className="text-xs text-gray-400">ID: {stop.stop_id}</span>
               </div>
             </Popup>
           </Marker>
