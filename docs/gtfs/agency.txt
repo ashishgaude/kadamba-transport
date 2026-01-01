@@ -1,0 +1,2 @@
+﻿agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_phone,agency_fare_url,agency_email
+ktcl-goa-in,Kadamba,http://ktclgoa.com/,Asia/Kolkata,en,0832-2438034,,
