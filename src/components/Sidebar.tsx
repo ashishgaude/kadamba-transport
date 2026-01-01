@@ -1,5 +1,5 @@
 import type { Route } from '../lib/gtfs';
-import { Search, Map as MapIcon, ChevronRight, PanelLeftClose } from 'lucide-react';
+import { Search, Map as MapIcon, ChevronRight, PanelLeftClose, Instagram, Linkedin } from 'lucide-react';
 import { useState } from 'react';
 
 interface SidebarProps {
@@ -112,15 +112,30 @@ export default function Sidebar({ routes, onSelectRoute, selectedRouteId, routeS
             <span>Made with</span>
             <span className="text-red-500 animate-pulse text-sm">❤️</span>
             <span>by</span>
-            <a 
-                href="https://www.linkedin.com/in/ashishgaude/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-            >
-                Ashish
-            </a>
-            <span>, Goa</span>
+            <span>by Ashish</span>
+            <span className="text-slate-300 mx-1">|</span>
+            <div className="flex items-center gap-2">
+                <a 
+                    href="https://www.linkedin.com/in/ashishgaude/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 transition-colors"
+                    title="LinkedIn"
+                >
+                    <Linkedin size={14} />
+                </a>
+                <a 
+                    href="https://www.instagram.com/ashishgaude.ig/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-pink-600 hover:text-pink-800 transition-colors"
+                    title="Instagram"
+                >
+                    <Instagram size={14} />
+                </a>
+            </div>
+            <span className="text-slate-300 mx-0.5">,</span>
+            <span>Goa</span>
         </div>
         <div className="text-[10px] text-slate-300 uppercase tracking-widest font-bold">
             {filteredRoutes.length} Routes Available

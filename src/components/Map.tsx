@@ -1,6 +1,6 @@
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, ZoomControl } from 'react-leaflet';
 import type { Stop, Shape } from '../lib/gtfs';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -38,13 +38,17 @@ function ChangeView({ bounds }: { bounds: L.LatLngBoundsExpression | null }) {
 export default function Map({ stops, selectedShape, onStopClick }: MapProps) {
   
   // Use shape if available, otherwise fallback to connecting the stops
-  const polylinePositions = (selectedShape && selectedShape.length > 0)
+  const polylinePositions = useMemo(() => {
+    return (selectedShape && selectedShape.length > 0)
     ? selectedShape.map(s => [s.shape_pt_lat, s.shape_pt_lon] as [number, number])
     : stops.map(s => [s.stop_lat, s.stop_lon] as [number, number]);
+  }, [selectedShape, stops]);
   
-  const bounds = polylinePositions.length > 0 
+  const bounds = useMemo(() => {
+    return polylinePositions.length > 0 
     ? L.latLngBounds(polylinePositions) 
     : null;
+  }, [polylinePositions]);
 
   return (
     <div className="h-full w-full relative">
