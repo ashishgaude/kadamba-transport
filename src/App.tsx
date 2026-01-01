@@ -1,0 +1,213 @@
+import { useState, useEffect, useMemo } from 'react';
+import { fetchGtfsData, type GTFSData, type Route, type Shape, type Stop, type StopTime } from './lib/gtfs';
+import LeafletMap from './components/Map';
+import Sidebar from './components/Sidebar';
+import Dashboard from './components/Dashboard';
+import { Loader2 } from 'lucide-react';
+
+// Helper to convert HH:MM:SS to seconds
+const timeToSeconds = (time: string): number => {
+  const [h, m, s] = time.split(':').map(Number);
+  return h * 3600 + m * 60 + s;
+};
+
+// Helper to convert seconds to HH:MM:SS (GTFS format)
+const secondsToTime = (seconds: number): string => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.round(seconds % 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
+
+// Helper to convert HH:MM:SS to HH:MM AM/PM for display
+const formatToAmPm = (time: string): string => {
+  if (!time) return '';
+  const [hStr, mStr] = time.split(':');
+  const h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${mStr} ${ampm}`;
+};
+
+// Function to interpolate missing times
+const interpolateStopTimes = (stopTimes: StopTime[]): StopTime[] => {
+  const filled = [...stopTimes];
+  let lastKnownIndex = 0;
+
+  for (let i = 0; i < filled.length; i++) {
+    if (filled[i].arrival_time) {
+      if (i > lastKnownIndex + 1) {
+        // We found a gap between lastKnownIndex and i
+        const startSec = timeToSeconds(filled[lastKnownIndex].arrival_time!);
+        const endSec = timeToSeconds(filled[i].arrival_time!);
+        const duration = endSec - startSec;
+        const steps = i - lastKnownIndex;
+        const stepSize = duration / steps;
+
+        for (let j = 1; j < steps; j++) {
+          const interpolatedSec = startSec + (stepSize * j);
+          filled[lastKnownIndex + j].arrival_time = secondsToTime(interpolatedSec);
+        }
+      }
+      lastKnownIndex = i;
+    }
+  }
+  return filled;
+};
+
+function App() {
+  const [data, setData] = useState<GTFSData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+  const [selectedShape, setSelectedShape] = useState<Shape[] | null>(null);
+  const [routeStops, setRouteStops] = useState<(Stop & { arrival_time?: string })[]>([]);
+
+  useEffect(() => {
+    fetchGtfsData()
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Handle URL params on data load
+  useEffect(() => {
+      if (!data) return;
+      const params = new URLSearchParams(window.location.search);
+      const routeId = params.get('route');
+      if (routeId) {
+          const route = data.routes.find(r => r.route_id === routeId);
+          if (route) setSelectedRoute(route);
+      }
+  }, [data]);
+
+  // Update URL on route selection
+  useEffect(() => {
+      if (selectedRoute) {
+          const url = new URL(window.location.href);
+          if (url.searchParams.get('route') !== selectedRoute.route_id) {
+             url.searchParams.set('route', selectedRoute.route_id);
+             window.history.pushState({}, '', url);
+          }
+      }
+  }, [selectedRoute]);
+
+  // Build a search index for routes based on their stops
+  const routeStopIndex = useMemo(() => {
+    if (!data) return {};
+    
+    // 1. Map trip_id to route_id
+    const tripToRoute = new Map<string, string>();
+    data.trips.forEach(t => tripToRoute.set(t.trip_id, t.route_id));
+
+    // 2. Map stop_id to stop_name
+    const stopIdToName = new Map<string, string>();
+    data.stops.forEach(s => stopIdToName.set(s.stop_id, s.stop_name.toLowerCase()));
+
+    // 3. Accumulate stop names per route
+    const index: Record<string, Set<string>> = {};
+    
+    // We iterate through stopTimes to find which stops belong to which route
+    // This is heavy (90k+ items), but runs once on data load
+    data.stopTimes.forEach(st => {
+        const routeId = tripToRoute.get(st.trip_id);
+        const stopName = stopIdToName.get(st.stop_id);
+        
+        if (routeId && stopName) {
+            if (!index[routeId]) {
+                index[routeId] = new Set();
+            }
+            index[routeId].add(stopName);
+        }
+    });
+
+    // 4. Convert Sets to joined strings for easy searching
+    const stringIndex: Record<string, string> = {};
+    for (const [routeId, stopSet] of Object.entries(index)) {
+        stringIndex[routeId] = Array.from(stopSet).join(' ');
+    }
+    
+    return stringIndex;
+  }, [data]);
+
+  // When a route is selected, find a representative trip, its shape, and its stops
+  useEffect(() => {
+    if (!data || !selectedRoute) {
+        setSelectedShape(null);
+        setRouteStops([]);
+        return;
+    }
+
+    // 1. Find a trip for this route
+    const trip = data.trips.find(t => t.route_id === selectedRoute.route_id);
+    
+    if (trip) {
+        // Set Shape
+        if (trip.shape_id && data.shapes[trip.shape_id]) {
+            setSelectedShape(data.shapes[trip.shape_id]);
+        } else {
+            setSelectedShape(null);
+        }
+
+        // Set Stops for this trip
+        // Filter stop_times for this trip_id
+        const currentTripStopTimes = data.stopTimes
+            .filter(st => st.trip_id === trip.trip_id)
+            .sort((a, b) => a.stop_sequence - b.stop_sequence);
+        
+        // Interpolate missing times
+        const interpolatedStopTimes = interpolateStopTimes(currentTripStopTimes);
+
+        // Map stop_times to actual stop objects to preserve order and include timing
+        const stopsForRoute = interpolatedStopTimes
+            .map(st => {
+              const stop = data.stops.find(s => s.stop_id === st.stop_id);
+              // Format time for display
+              const displayTime = st.arrival_time ? formatToAmPm(st.arrival_time) : undefined;
+              return stop ? { ...stop, arrival_time: displayTime } : null;
+            })
+            .filter((s): s is (Stop & { arrival_time: string }) => !!s);
+            
+        setRouteStops(stopsForRoute);
+
+    } else {
+      setSelectedShape(null);
+      setRouteStops([]);
+    }
+  }, [selectedRoute, data]);
+
+  if (loading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <p className="text-gray-500">Loading GTFS Data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return <div className="text-center p-10 text-red-500">Failed to load data.</div>;
+
+  return (
+    <div className="flex h-screen w-screen overflow-hidden">
+      <Sidebar 
+        routes={data.routes} 
+        onSelectRoute={setSelectedRoute} 
+        selectedRouteId={selectedRoute?.route_id}
+        routeStopIndex={routeStopIndex}
+      />
+      <div className="flex-1 relative">
+        <LeafletMap 
+            stops={routeStops.length > 0 ? routeStops : data.stops} 
+            selectedShape={selectedShape}
+            selectedRouteName={selectedRoute?.route_long_name}
+        />
+        {!selectedRoute && (
+          <Dashboard routes={data.routes} stops={data.stops} trips={data.trips} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default App;
