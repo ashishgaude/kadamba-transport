@@ -3,13 +3,7 @@ import { fetchGtfsData, type GTFSData, type Route, type Shape, type Stop, type S
 import LeafletMap from './components/Map';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
-import { Loader2 } from 'lucide-react';
-
-// Helper to convert HH:MM:SS to seconds
-const timeToSeconds = (time: string): number => {
-  const [h, m, s] = time.split(':').map(Number);
-  return h * 3600 + m * 60 + s;
-};
+import { Loader2, Menu, X } from 'lucide-react';
 
 // Helper to convert seconds to HH:MM:SS (GTFS format)
 const secondsToTime = (seconds: number): string => {
@@ -55,12 +49,19 @@ const interpolateStopTimes = (stopTimes: StopTime[]): StopTime[] => {
   return filled;
 };
 
+// Helper to convert HH:MM:SS to seconds
+const timeToSeconds = (time: string): number => {
+  const [h, m, s] = time.split(':').map(Number);
+  return h * 3600 + m * 60 + s;
+};
+
 function App() {
   const [data, setData] = useState<GTFSData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [selectedShape, setSelectedShape] = useState<Shape[] | null>(null);
   const [routeStops, setRouteStops] = useState<(Stop & { arrival_time?: string })[]>([]);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetchGtfsData()
@@ -88,6 +89,8 @@ function App() {
              url.searchParams.set('route', selectedRoute.route_id);
              window.history.pushState({}, '', url);
           }
+          // Close sidebar on mobile when route is selected
+          setIsMobileSidebarOpen(false);
       }
   }, [selectedRoute]);
 
@@ -107,7 +110,6 @@ function App() {
     const index: Record<string, Set<string>> = {};
     
     // We iterate through stopTimes to find which stops belong to which route
-    // This is heavy (90k+ items), but runs once on data load
     data.stopTimes.forEach(st => {
         const routeId = tripToRoute.get(st.trip_id);
         const stopName = stopIdToName.get(st.stop_id);
@@ -189,14 +191,48 @@ function App() {
   if (!data) return <div className="text-center p-10 text-red-500">Failed to load data.</div>;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
-      <Sidebar 
-        routes={data.routes} 
-        onSelectRoute={setSelectedRoute} 
-        selectedRouteId={selectedRoute?.route_id}
-        routeStopIndex={routeStopIndex}
-      />
-      <div className="flex-1 relative">
+    <div className="flex h-screen w-screen overflow-hidden relative">
+      
+      {/* Mobile Sidebar Overlay */}
+      <div 
+        className={`fixed inset-y-0 left-0 z-[2000] w-80 bg-white transform transition-transform duration-300 ease-in-out shadow-2xl md:relative md:translate-x-0 md:shadow-none ${
+          isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="h-full relative">
+            {/* Close Button on Mobile */}
+            <button 
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full md:hidden hover:bg-gray-200 z-10"
+            >
+                <X size={20} />
+            </button>
+            <Sidebar 
+                routes={data.routes} 
+                onSelectRoute={setSelectedRoute} 
+                selectedRouteId={selectedRoute?.route_id}
+                routeStopIndex={routeStopIndex}
+            />
+        </div>
+      </div>
+
+      {/* Overlay to close sidebar when clicking outside on mobile */}
+      {isMobileSidebarOpen && (
+        <div 
+            className="fixed inset-0 bg-black/50 z-[1900] md:hidden"
+            onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
+      <div className="flex-1 relative h-full w-full">
+        {/* Mobile Toggle Button */}
+        <button 
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className="absolute top-4 left-4 z-[1000] p-3 bg-white rounded-lg shadow-lg md:hidden hover:bg-gray-50 text-blue-600"
+        >
+            <Menu size={24} />
+        </button>
+
         <LeafletMap 
             stops={routeStops.length > 0 ? routeStops : data.stops} 
             selectedShape={selectedShape}

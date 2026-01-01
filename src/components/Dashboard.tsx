@@ -15,9 +15,9 @@ export default function Dashboard({ routes, stops, trips }: DashboardProps) {
   const totalTrips = trips.length;
 
   return (
-    <div className="absolute top-4 left-4 right-4 z-[500] pointer-events-none">
+    <div className="absolute top-4 left-4 right-4 z-[500] pointer-events-none mt-14 md:mt-0">
        {/* Container for Cards */}
-       <div className="flex gap-4 mb-4 pointer-events-auto max-w-4xl">
+       <div className="flex flex-col md:flex-row gap-4 mb-4 pointer-events-auto max-w-4xl">
          <div className="bg-white p-4 rounded-lg shadow-lg flex items-center gap-3 flex-1">
             <div className="p-2 bg-blue-100 rounded-full text-blue-600"><Bus size={24} /></div>
             <div>
