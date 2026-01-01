@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Coffee, Copy, Check } from 'lucide-react';
 
-export default function DonationWidget() {
+export default function DonationWidget({ isDarkMode }: { isDarkMode?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'bmc' | 'upi'>('bmc');
   const [copied, setCopied] = useState(false);
@@ -21,16 +21,17 @@ export default function DonationWidget() {
     <div className="fixed bottom-10 right-4 md:bottom-12 md:right-6 z-[3000] flex flex-col items-end gap-4 font-sans">
       {/* Popup Content */}
       {isOpen && (
-        <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-0 w-72 overflow-hidden animate-in fade-in slide-in-from-bottom-10 duration-200">
+        <div className={`rounded-2xl shadow-2xl border p-0 w-72 overflow-hidden animate-in fade-in slide-in-from-bottom-10 duration-200
+            ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`}>
           
           {/* Tabs */}
-          <div className="flex border-b border-gray-100">
+          <div className={`flex border-b ${isDarkMode ? 'border-slate-700' : 'border-gray-100'}`}>
             <button 
                 onClick={() => setActiveTab('bmc')}
                 className={`flex-1 py-3 text-sm font-semibold transition-colors ${
                     activeTab === 'bmc' 
                     ? 'bg-yellow-400 text-black' 
-                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                    : (isDarkMode ? 'bg-slate-900 text-slate-400 hover:bg-slate-800' : 'bg-gray-50 text-gray-500 hover:bg-gray-100')
                 }`}
             >
                 ☕️ BMC
@@ -40,7 +41,7 @@ export default function DonationWidget() {
                 className={`flex-1 py-3 text-sm font-semibold transition-colors ${
                     activeTab === 'upi' 
                     ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                    : (isDarkMode ? 'bg-slate-900 text-slate-400 hover:bg-slate-800' : 'bg-gray-50 text-gray-500 hover:bg-gray-100')
                 }`}
             >
                 🇮🇳 UPI
@@ -52,7 +53,8 @@ export default function DonationWidget() {
             
             {activeTab === 'bmc' && (
                 <div className="flex flex-col items-center w-full gap-4">
-                    <div className="bg-white p-2 rounded-xl shadow-inner border border-gray-100 w-40 h-40 flex items-center justify-center">
+                    <div className={`p-2 rounded-xl shadow-inner border w-40 h-40 flex items-center justify-center
+                        ${isDarkMode ? 'bg-white border-slate-600' : 'bg-white border-gray-100'}`}>
                         <img 
                             src={getAssetPath('bmc_qr.png')} 
                             alt="BMC QR" 
@@ -73,7 +75,8 @@ export default function DonationWidget() {
 
             {activeTab === 'upi' && (
                 <div className="flex flex-col items-center w-full gap-4">
-                    <div className="bg-white p-2 rounded-xl shadow-inner border border-gray-100 w-40 h-40 flex items-center justify-center">
+                    <div className={`p-2 rounded-xl shadow-inner border w-40 h-40 flex items-center justify-center
+                        ${isDarkMode ? 'bg-white border-slate-600' : 'bg-white border-gray-100'}`}>
                         <img 
                             src={getAssetPath('upi.jpeg')} 
                             alt="UPI QR" 
@@ -82,7 +85,8 @@ export default function DonationWidget() {
                     </div>
                     <button 
                         onClick={copyUPI}
-                        className="w-full py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-medium rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 group relative"
+                        className={`w-full py-2.5 border font-medium rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 group relative
+                            ${isDarkMode ? 'bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-200' : 'bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-700'}`}
                     >
                         <span className="text-xs font-mono">ashish.gaude4@okaxis</span>
                         {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} className="text-gray-400 group-hover:text-gray-600" />}
@@ -111,7 +115,8 @@ export default function DonationWidget() {
         />
         {/* Close circle if open */}
         {isOpen && (
-            <div className="absolute -top-2 -right-2 bg-white text-gray-500 rounded-full p-1 shadow-md border border-gray-100 z-20">
+            <div className={`absolute -top-2 -right-2 rounded-full p-1 shadow-md border z-20
+                ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white text-gray-500 border-gray-100'}`}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
