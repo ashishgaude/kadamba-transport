@@ -112,7 +112,7 @@ export default function Sidebar({ routes, onSelectRoute, selectedRouteId, routeS
             <span>Made with</span>
             <span className="text-red-500 animate-pulse text-sm">❤️</span>
             <span>by</span>
-            <span>by Ashish</span>
+            <span>Ashish</span>
             <span className="text-slate-300 mx-1">|</span>
             <div className="flex items-center gap-2">
                 <a 
