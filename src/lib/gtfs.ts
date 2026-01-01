@@ -104,3 +104,54 @@ export const fetchGtfsData = async (): Promise<GTFSData> => {
     throw error;
   }
 };
+
+// Helper to convert HH:MM:SS to seconds
+export const timeToSeconds = (time: string): number => {
+  const [h, m, s] = time.split(':').map(Number);
+  return h * 3600 + m * 60 + s;
+};
+
+// Helper to convert seconds to HH:MM:SS (GTFS format)
+export const secondsToTime = (seconds: number): string => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.round(seconds % 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
+
+// Helper to convert HH:MM:SS to HH:MM AM/PM for display
+export const formatToAmPm = (time: string): string => {
+  if (!time) return '--:--';
+  const [hStr, mStr] = time.split(':');
+  const h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${mStr} ${ampm}`;
+};
+
+// Function to interpolate missing times
+export const interpolateStopTimes = (stopTimes: StopTime[]): StopTime[] => {
+  const filled = stopTimes.map(st => ({...st})); // Deep copy
+  let lastKnownIndex = 0;
+
+  for (let i = 0; i < filled.length; i++) {
+    if (filled[i].arrival_time) {
+      if (i > lastKnownIndex + 1) {
+        // We found a gap between lastKnownIndex and i
+        const startSec = timeToSeconds(filled[lastKnownIndex].arrival_time!);
+        const endSec = timeToSeconds(filled[i].arrival_time!);
+        const duration = endSec - startSec;
+        const steps = i - lastKnownIndex;
+        const stepSize = duration / steps;
+
+        for (let j = 1; j < steps; j++) {
+          const interpolatedSec = startSec + (stepSize * j);
+          filled[lastKnownIndex + j].arrival_time = secondsToTime(interpolatedSec);
+          filled[lastKnownIndex + j].departure_time = secondsToTime(interpolatedSec);
+        }
+      }
+      lastKnownIndex = i;
+    }
+  }
+  return filled;
+};

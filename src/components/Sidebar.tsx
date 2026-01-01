@@ -1,10 +1,14 @@
-import type { Route } from '../lib/gtfs';
-import { Search, Map as MapIcon, ChevronRight, PanelLeftClose, Instagram, Linkedin, Download, Moon, Sun } from 'lucide-react';
+import type { Route, Stop, StopTime, Trip } from '../lib/gtfs';
+import { Search, Map as MapIcon, ChevronRight, PanelLeftClose, Instagram, Linkedin, Download, Moon, Sun, MapPin, List } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import TripPlanner from './TripPlanner';
 
 interface SidebarProps {
   routes: Route[];
-  onSelectRoute: (route: Route) => void;
+  stops: Stop[];
+  stopTimes: StopTime[];
+  trips: Trip[];
+  onSelectRoute: (route: Route, tripId?: string) => void;
   selectedRouteId?: string;
   routeStopIndex: Record<string, string>;
   onToggleCollapse?: () => void;
@@ -12,7 +16,8 @@ interface SidebarProps {
   toggleDarkMode?: () => void;
 }
 
-export default function Sidebar({ routes, onSelectRoute, selectedRouteId, routeStopIndex, onToggleCollapse, isDarkMode, toggleDarkMode }: SidebarProps) {
+export default function Sidebar({ routes, stops, stopTimes, trips, onSelectRoute, selectedRouteId, routeStopIndex, onToggleCollapse, isDarkMode, toggleDarkMode }: SidebarProps) {
+  const [activeTab, setActiveTab] = useState<'routes' | 'planner'>('routes');
   const [searchTerm, setSearchTerm] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
@@ -76,7 +81,7 @@ export default function Sidebar({ routes, onSelectRoute, selectedRouteId, routeS
             </div>
             <div className="flex-1">
                 <div className="flex items-center gap-2">
-                    <h1 className="text-xl font-bold tracking-tight">Kadamba Transport</h1>
+                    <h1 className="text-xl font-bold tracking-tight">Kadamba</h1>
                     {deferredPrompt && (
                         <button 
                             onClick={handleInstallClick}
@@ -87,73 +92,118 @@ export default function Sidebar({ routes, onSelectRoute, selectedRouteId, routeS
                         </button>
                     )}
                 </div>
-                <p className="text-blue-200 text-xs uppercase tracking-wider font-medium">Goa State Bus Network</p>
+                <p className="text-blue-200 text-xs uppercase tracking-wider font-medium">Bus Network</p>
             </div>
         </div>
 
-        {/* Search Input */}
-        <div className="relative group">
-          <input
-            type="text"
-            placeholder="Search routes or stops..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={`w-full pl-11 pr-4 py-3 border rounded-xl text-white placeholder-blue-200/70 focus:outline-none focus:ring-2 focus:ring-white/30 focus:bg-white/20 transition-all backdrop-blur-md shadow-sm
-                ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-white/10 border-white/20'}
-            `}
-          />
-          <Search className="absolute left-3.5 top-3.5 text-blue-200/70 w-5 h-5 group-focus-within:text-white transition-colors" />
+        {/* Tab Switcher */}
+        <div className="flex p-1 bg-black/20 rounded-xl mb-4 backdrop-blur-sm">
+            <button
+                onClick={() => setActiveTab('routes')}
+                className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-2
+                    ${activeTab === 'routes' ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-100 hover:bg-white/10'}
+                `}
+            >
+                <List size={14} />
+                Routes
+            </button>
+            <button
+                onClick={() => setActiveTab('planner')}
+                className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-2
+                    ${activeTab === 'planner' ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-100 hover:bg-white/10'}
+                `}
+            >
+                <MapPin size={14} />
+                Trip Finder
+            </button>
         </div>
+
+        {/* Search Input (Only for Routes tab) */}
+        {activeTab === 'routes' && (
+            <div className="relative group animate-in fade-in slide-in-from-top-2">
+            <input
+                type="text"
+                placeholder="Search routes or stops..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`w-full pl-11 pr-4 py-3 border rounded-xl text-white placeholder-blue-200/70 focus:outline-none focus:ring-2 focus:ring-white/30 focus:bg-white/20 transition-all backdrop-blur-md shadow-sm
+                    ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-white/10 border-white/20'}
+                `}
+            />
+            <Search className="absolute left-3.5 top-3.5 text-blue-200/70 w-5 h-5 group-focus-within:text-white transition-colors" />
+            </div>
+        )}
       </div>
       
-      {/* Route List */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 custom-scrollbar">
-        {filteredRoutes.length === 0 ? (
-            <div className={`text-center py-10 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                <p>No routes found.</p>
-            </div>
-        ) : (
-            filteredRoutes.map(route => {
-              const isSelected = selectedRouteId === route.route_id;
-              return (
-                <button
-                    key={route.route_id}
-                    onClick={() => onSelectRoute(route)}
-                    className={`group w-full text-left p-4 rounded-xl border transition-all duration-200 ease-in-out relative overflow-hidden ${
-                    isSelected 
-                        ? (isDarkMode ? 'bg-slate-800 border-blue-500/50 shadow-md ring-1 ring-blue-500/20' : 'bg-white border-blue-500 shadow-md ring-1 ring-blue-500/20')
-                        : (isDarkMode ? 'bg-slate-800/50 border-slate-700 shadow-sm hover:border-slate-600 hover:bg-slate-800' : 'bg-white border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md')
-                    }`}
-                >
-                    {/* Active Indicator Strip */}
-                    {isSelected && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600" />
-                    )}
+      {/* Content Area */}
+      <div className="flex-1 overflow-hidden flex flex-col relative">
+        
+        {/* Routes Tab Content */}
+        {activeTab === 'routes' && (
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 custom-scrollbar animate-in slide-in-from-left-4 duration-300 absolute inset-0">
+                {filteredRoutes.length === 0 ? (
+                    <div className={`text-center py-10 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        <p>No routes found.</p>
+                    </div>
+                ) : (
+                    filteredRoutes.map(route => {
+                    const isSelected = selectedRouteId === route.route_id;
+                    return (
+                        <button
+                            key={route.route_id}
+                            onClick={() => onSelectRoute(route)}
+                            className={`group w-full text-left p-4 rounded-xl border transition-all duration-200 ease-in-out relative overflow-hidden ${
+                            isSelected 
+                                ? (isDarkMode ? 'bg-slate-800 border-blue-500/50 shadow-md ring-1 ring-blue-500/20' : 'bg-white border-blue-500 shadow-md ring-1 ring-blue-500/20')
+                                : (isDarkMode ? 'bg-slate-800/50 border-slate-700 shadow-sm hover:border-slate-600 hover:bg-slate-800' : 'bg-white border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md')
+                            }`}
+                        >
+                            {/* Active Indicator Strip */}
+                            {isSelected && (
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600" />
+                            )}
 
-                    <div className="flex justify-between items-start mb-2 pl-2">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide ${
-                            isSelected 
-                                ? (isDarkMode ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-700')
-                                : (isDarkMode ? 'bg-slate-700 text-slate-300 group-hover:bg-blue-900/30 group-hover:text-blue-300' : 'bg-slate-100 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600')
-                        }`}>
-                            {route.route_short_name}
-                        </span>
-                        {isSelected && <ChevronRight className="w-4 h-4 text-blue-500" />}
-                    </div>
-                    
-                    <div className="pl-2">
-                        <h3 className={`font-semibold text-sm leading-snug ${
-                            isSelected 
-                                ? (isDarkMode ? 'text-blue-200' : 'text-blue-900')
-                                : (isDarkMode ? 'text-slate-300 group-hover:text-blue-300' : 'text-slate-700 group-hover:text-blue-800')
-                        }`}>
-                            {route.route_long_name}
-                        </h3>
-                    </div>
-                </button>
-            )
-            })
+                            <div className="flex justify-between items-start mb-2 pl-2">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide ${
+                                    isSelected 
+                                        ? (isDarkMode ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-700')
+                                        : (isDarkMode ? 'bg-slate-700 text-slate-300 group-hover:bg-blue-900/30 group-hover:text-blue-300' : 'bg-slate-100 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600')
+                                }`}>
+                                    {route.route_short_name}
+                                </span>
+                                {isSelected && <ChevronRight className="w-4 h-4 text-blue-500" />}
+                            </div>
+                            
+                            <div className="pl-2">
+                                <h3 className={`font-semibold text-sm leading-snug ${
+                                    isSelected 
+                                        ? (isDarkMode ? 'text-blue-200' : 'text-blue-900')
+                                        : (isDarkMode ? 'text-slate-300 group-hover:text-blue-300' : 'text-slate-700 group-hover:text-blue-800')
+                                }`}>
+                                    {route.route_long_name}
+                                </h3>
+                            </div>
+                        </button>
+                    )
+                    })
+                )}
+            </div>
         )}
+
+        {/* Trip Planner Tab Content */}
+        {activeTab === 'planner' && (
+            <div className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar animate-in slide-in-from-right-4 duration-300 absolute inset-0">
+                <TripPlanner 
+                    stops={stops}
+                    stopTimes={stopTimes}
+                    trips={trips}
+                    routes={routes}
+                    onSelectTrip={onSelectRoute}
+                    isDarkMode={isDarkMode}
+                />
+            </div>
+        )}
+
       </div>
       
       {/* Footer */}

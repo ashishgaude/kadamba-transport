@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchGtfsData, type GTFSData, type Route, type Shape, type Stop, type StopTime } from './lib/gtfs';
+import { fetchGtfsData, type GTFSData, type Route, type Shape, type Stop, interpolateStopTimes, formatToAmPm } from './lib/gtfs';
 import LeafletMap from './components/Map';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -8,60 +8,11 @@ import LoadingScreen from './components/LoadingScreen';
 import RouteInfoWidget from './components/RouteInfoWidget';
 import { Menu, X } from 'lucide-react';
 
-// Helper to convert seconds to HH:MM:SS (GTFS format)
-const secondsToTime = (seconds: number): string => {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.round(seconds % 60);
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-};
-
-// Helper to convert HH:MM:SS to HH:MM AM/PM for display
-const formatToAmPm = (time: string): string => {
-  if (!time) return '';
-  const [hStr, mStr] = time.split(':');
-  const h = parseInt(hStr, 10);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const h12 = h % 12 || 12;
-  return `${h12}:${mStr} ${ampm}`;
-};
-
-// Function to interpolate missing times
-const interpolateStopTimes = (stopTimes: StopTime[]): StopTime[] => {
-  const filled = [...stopTimes];
-  let lastKnownIndex = 0;
-
-  for (let i = 0; i < filled.length; i++) {
-    if (filled[i].arrival_time) {
-      if (i > lastKnownIndex + 1) {
-        // We found a gap between lastKnownIndex and i
-        const startSec = timeToSeconds(filled[lastKnownIndex].arrival_time!);
-        const endSec = timeToSeconds(filled[i].arrival_time!);
-        const duration = endSec - startSec;
-        const steps = i - lastKnownIndex;
-        const stepSize = duration / steps;
-
-        for (let j = 1; j < steps; j++) {
-          const interpolatedSec = startSec + (stepSize * j);
-          filled[lastKnownIndex + j].arrival_time = secondsToTime(interpolatedSec);
-        }
-      }
-      lastKnownIndex = i;
-    }
-  }
-  return filled;
-};
-
-// Helper to convert HH:MM:SS to seconds
-const timeToSeconds = (time: string): number => {
-  const [h, m, s] = time.split(':').map(Number);
-  return h * 3600 + m * 60 + s;
-};
-
 function App() {
   const [data, setData] = useState<GTFSData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [selectedShape, setSelectedShape] = useState<Shape[] | null>(null);
   const [routeStops, setRouteStops] = useState<(Stop & { arrival_time?: string })[]>([]);
   const [selectedStop, setSelectedStop] = useState<(Stop & { arrival_time?: string }) | null>(null);
@@ -167,7 +118,13 @@ function App() {
     }
 
     // 1. Find a trip for this route
-    const trip = data.trips.find(t => t.route_id === selectedRoute.route_id);
+    // If a specific trip ID is selected (from planner), use that. Otherwise find the first one.
+    let trip = selectedTripId ? data.trips.find(t => t.trip_id === selectedTripId) : null;
+    
+    // Fallback if no specific trip selected or found
+    if (!trip) {
+        trip = data.trips.find(t => t.route_id === selectedRoute.route_id) || null;
+    }
     
     if (trip) {
         // Set Shape
@@ -180,7 +137,7 @@ function App() {
         // Set Stops for this trip
         // Filter stop_times for this trip_id
         const currentTripStopTimes = data.stopTimes
-            .filter(st => st.trip_id === trip.trip_id)
+            .filter(st => st.trip_id === trip?.trip_id)
             .sort((a, b) => a.stop_sequence - b.stop_sequence);
         
         // Interpolate missing times
@@ -202,7 +159,18 @@ function App() {
       setSelectedShape(null);
       setRouteStops([]);
     }
-  }, [selectedRoute, data]);
+  }, [selectedRoute, selectedTripId, data]);
+
+  // Handle selecting a specific trip from the planner
+  const handleTripSelect = (route: Route, tripId?: string) => {
+    // If selecting a new route that is different, or just a new trip
+    setSelectedRoute(route);
+    if (tripId) {
+        setSelectedTripId(tripId);
+    } else {
+        setSelectedTripId(null);
+    }
+  };
 
   if (loading) {
     return <LoadingScreen />;
@@ -236,7 +204,10 @@ function App() {
             </button>
             <Sidebar 
                 routes={data.routes} 
-                onSelectRoute={setSelectedRoute} 
+                stops={data.stops}
+                stopTimes={data.stopTimes}
+                trips={data.trips}
+                onSelectRoute={handleTripSelect} 
                 selectedRouteId={selectedRoute?.route_id}
                 routeStopIndex={routeStopIndex}
                 onToggleCollapse={() => setIsDesktopSidebarOpen(false)}
